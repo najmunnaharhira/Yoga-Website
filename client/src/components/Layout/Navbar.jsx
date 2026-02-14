@@ -19,6 +19,7 @@ export default function Navbar() {
     { to: '/', label: 'Home' },
     { to: '/classes', label: 'Classes' },
     { to: '/instructors', label: 'Instructors' },
+    ...(user ? [{ to: '/cart', label: 'Cart' }] : []),
   ];
 
   return (

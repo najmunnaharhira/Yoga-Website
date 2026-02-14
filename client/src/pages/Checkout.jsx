@@ -9,7 +9,7 @@ import { toast } from 'react-toastify';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK || 'pk_test_demo');
 
-function CheckoutForm({ cartItems, user, onSuccess }) {
+function CheckoutForm({ cartItems, user, clientSecret, onSuccess }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -21,9 +21,6 @@ function CheckoutForm({ cartItems, user, onSuccess }) {
     if (!stripe || !elements) return;
     setLoading(true);
     try {
-      const { data } = await api.post('/create-payment-intent', { price: total });
-      const clientSecret = data.clientSecret;
-
       const { error } = await stripe.confirmPayment({
         elements,
         clientSecret,
@@ -35,15 +32,17 @@ function CheckoutForm({ cartItems, user, onSuccess }) {
       if (error) {
         toast.error(error.message);
       } else {
-        const paymentIntent = await stripe.retrievePaymentIntent(clientSecret);
-        if (paymentIntent.paymentIntent?.status === 'succeeded') {
+        const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
+        if (paymentIntent?.status === 'succeeded') {
           await api.post('/payment-info', {
             userEmail: user.email,
             userName: user.name,
             classesId: cartItems.map((c) => c._id),
-            transactionId: paymentIntent.paymentIntent.id,
+            transactionId: paymentIntent.id,
           });
           toast.success('Payment successful!');
+          onSuccess();
+        } else {
           onSuccess();
         }
       }
@@ -74,6 +73,7 @@ function CheckoutForm({ cartItems, user, onSuccess }) {
 export default function Checkout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [clientSecret, setClientSecret] = useState('');
 
   const { data: cartItems = [], refetch } = useQuery({
     queryKey: ['cart', user?.email],
@@ -81,9 +81,19 @@ export default function Checkout() {
     enabled: !!user?.email,
   });
 
+  const total = cartItems.reduce((sum, item) => sum + parseInt(item.price || 0), 0);
+
   useEffect(() => {
     if (!user) navigate('/login');
   }, [user, navigate]);
+
+  useEffect(() => {
+    if (user && cartItems.length > 0 && total > 0) {
+      api.post('/create-payment-intent', { price: total }).then(({ data }) => {
+        setClientSecret(data.clientSecret);
+      }).catch(() => setClientSecret(null));
+    }
+  }, [user, cartItems.length, total]);
 
   if (!user) return null;
 
@@ -101,20 +111,30 @@ export default function Checkout() {
     );
   }
 
+  const options = { clientSecret, appearance: { theme: 'stripe' } };
+
   return (
     <div className="py-16 max-w-md mx-auto px-4">
       <h1 className="text-2xl font-bold mb-8">Checkout</h1>
       <div className="bg-white p-6 rounded-xl shadow-lg">
-        <Elements stripe={stripePromise}>
-          <CheckoutForm
-            cartItems={cartItems}
-            user={user}
-            onSuccess={() => {
-              refetch();
-              navigate('/dashboard');
-            }}
-          />
-        </Elements>
+        {clientSecret ? (
+          <Elements stripe={stripePromise} options={options}>
+            <CheckoutForm
+              cartItems={cartItems}
+              user={user}
+              clientSecret={clientSecret}
+              onSuccess={() => {
+                refetch();
+                navigate('/dashboard');
+              }}
+            />
+          </Elements>
+        ) : (
+          <div className="text-center py-8">
+            <div className="animate-spin w-10 h-10 border-2 border-secondary border-t-transparent rounded-full mx-auto" />
+            <p className="mt-4 text-gray-600">Loading checkout...</p>
+          </div>
+        )}
       </div>
     </div>
   );

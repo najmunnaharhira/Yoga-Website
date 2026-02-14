@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
 import { toast } from 'react-toastify';
-import Swal from 'sweetalert2';
 
 export default function ClassDetails() {
   const { id } = useParams();

@@ -17,22 +17,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const createUser = async (email, password, name, photoUrl) => {
+    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
     const res = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(res.user, { displayName: name, photoURL: photoUrl });
     return res;
   };
 
   const login = (email, password) => {
+    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
     return signInWithEmailAndPassword(auth, email, password);
   };
 
   const loginWithGoogle = () => {
+    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
     return signInWithPopup(auth, googleProvider);
   };
 
   const logout = () => {
     localStorage.removeItem('yoga-token');
-    return signOut(auth);
+    if (auth) return signOut(auth);
+    return Promise.resolve();
   };
 
   const setToken = async (userData) => {
@@ -41,6 +45,10 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userData = {
@@ -85,6 +93,7 @@ export function AuthProvider({ children }) {
     loginWithGoogle,
     logout,
     setToken,
+    isAuthConfigured: !!auth,
   };
 
   return (
