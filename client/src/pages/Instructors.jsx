@@ -3,9 +3,10 @@ import api from '../api/axios';
 import InstructorCard from '../components/InstructorCard';
 
 export default function Instructors() {
-  const { data: instructors = [], isLoading } = useQuery({
+  const { data: instructors = [], isLoading, isError } = useQuery({
     queryKey: ['instructors'],
     queryFn: () => api.get('/instructors').then((r) => r.data),
+    retry: false,
   });
 
   if (isLoading) {
@@ -17,7 +18,7 @@ export default function Instructors() {
   }
 
   return (
-    <div className="py-16 max-w-7xl mx-auto px-4">
+    <div className="py-16 max-w-7xl mx-auto px-4 pt-24">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900">Our Instructors</h1>
         <p className="text-gray-600 mt-2">Expert yoga teachers</p>
@@ -33,7 +34,7 @@ export default function Instructors() {
           />
         ))}
       </div>
-      {instructors.length === 0 && (
+      {(instructors.length === 0 || isError) && (
         <p className="text-center text-gray-500 py-12">No instructors yet.</p>
       )}
     </div>

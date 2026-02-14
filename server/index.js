@@ -262,7 +262,8 @@ async function run() {
         // Delete a item form cart
         app.delete('/delete-cart-item/:id', verifyJWT, async (req, res) => {
             const id = req.params.id;
-            const query = { classId: id };
+            const email = req.decoded.email;
+            const query = { classId: id, userMail: email };
             const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
@@ -293,20 +294,13 @@ async function run() {
                 query = { classId: { $in: classesId } };
             }
             const classesQuery = { _id: { $in: classesId.map(id => new ObjectId(id)) } }
-            const classes = await classesCollection.find(classesQuery).toArray();
             const newEnrolledData = {
                 userEmail: userEmail,
                 classesId: classesId.map(id => new ObjectId(id)),
                 transactionId: paymentInfo.transactionId,
             }
-            const updatedDoc = {
-                $set: {
-                    totalEnrolled: classes.reduce((total, current) => total + current.totalEnrolled, 0) + 1 || 0,
-                    availableSeats: classes.reduce((total, current) => total + current.availableSeats, 0) - 1 || 0,
-                }
-            }
-            // const updatedInstructor = await userCollection.find()
-            const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc, { upsert: true });
+            const updatedDoc = { $inc: { totalEnrolled: 1, availableSeats: -1 } };
+            const updatedResult = await classesCollection.updateMany(classesQuery, updatedDoc);
             const enrolledResult = await enrolledCollection.insertOne(newEnrolledData);
             const deletedResult = await cartCollection.deleteMany(query);
             const paymentResult = await paymentCollection.insertOne(paymentInfo);

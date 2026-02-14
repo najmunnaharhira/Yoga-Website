@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
+import ApplyInstructor from './pages/ApplyInstructor';
 import NotFound from './pages/NotFound';
 import DashboardLayout from './pages/Dashboard/DashboardLayout';
 import StudentDashboard from './pages/Dashboard/StudentDashboard';
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
       { path: 'register', element: <Register /> },
       { path: 'cart', element: <Cart /> },
       { path: 'checkout', element: <Checkout /> },
+      { path: 'apply-instructor', element: <ApplyInstructor /> },
       {
         path: 'dashboard',
         element: <DashboardLayout />,

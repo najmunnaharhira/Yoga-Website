@@ -28,6 +28,8 @@ export default function InstructorDashboard() {
       ...data,
       instructorEmail: user.email,
       instructorName: user.name,
+      status: 'pending',
+      totalEnrolled: 0,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries(['instructor-classes']);
@@ -46,7 +48,7 @@ export default function InstructorDashboard() {
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="animate-spin w-12 h-12 border-4 border-secondary border-t-transparent rounded-full" />
+        <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
       </div>
     );
   }
@@ -56,7 +58,7 @@ export default function InstructorDashboard() {
       <h1 className="text-2xl font-bold mb-6">Instructor Dashboard</h1>
       <button
         onClick={() => setShowForm(!showForm)}
-        className="mb-6 px-4 py-2 bg-secondary text-white rounded-lg hover:opacity-90"
+        className="mb-6 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
       >
         {showForm ? 'Cancel' : 'Add New Class'}
       </button>
@@ -108,7 +110,7 @@ export default function InstructorDashboard() {
           <button
             type="submit"
             disabled={addClass.isPending}
-            className="w-full py-2 bg-secondary text-white rounded-lg"
+            className="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
             {addClass.isPending ? 'Adding...' : 'Add Class'}
           </button>

@@ -86,13 +86,15 @@ export default function StudentDashboard() {
           )}
         </div>
       </div>
-      <div className="mt-6">
-        <Link
-          to="/classes"
-          className="text-secondary font-medium hover:underline"
-        >
+      <div className="mt-6 flex flex-wrap gap-4">
+        <Link to="/classes" className="text-blue-500 font-medium hover:underline">
           Browse more classes →
         </Link>
+        {user?.role !== 'instructor' && user?.role !== 'admin' && (
+          <Link to="/apply-instructor" className="text-blue-500 font-medium hover:underline">
+            Apply as Instructor →
+          </Link>
+        )}
       </div>
     </div>
   );

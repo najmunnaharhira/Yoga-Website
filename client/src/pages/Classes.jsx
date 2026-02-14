@@ -3,9 +3,10 @@ import api from '../api/axios';
 import ClassCard from '../components/ClassCard';
 
 export default function Classes() {
-  const { data: classes = [], isLoading } = useQuery({
+  const { data: classes = [], isLoading, isError } = useQuery({
     queryKey: ['classes'],
     queryFn: () => api.get('/classes').then((r) => r.data),
+    retry: false,
   });
 
   if (isLoading) {
@@ -17,7 +18,7 @@ export default function Classes() {
   }
 
   return (
-    <div className="py-16 max-w-7xl mx-auto px-4">
+    <div className="py-16 max-w-7xl mx-auto px-4 pt-24">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900">All Classes</h1>
         <p className="text-gray-600 mt-2">Choose your yoga journey</p>
@@ -27,8 +28,10 @@ export default function Classes() {
           <ClassCard key={cls._id} cls={cls} />
         ))}
       </div>
-      {classes.length === 0 && (
-        <p className="text-center text-gray-500 py-12">No classes available yet.</p>
+      {(classes.length === 0 || isError) && (
+        <p className="text-center text-gray-500 py-12 col-span-full">
+          {isError ? 'Unable to load classes. Make sure the server is running.' : 'No classes available yet.'}
+        </p>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
 import { toast } from 'react-toastify';
@@ -34,11 +34,14 @@ function CheckoutForm({ cartItems, user, clientSecret, onSuccess }) {
       } else {
         const { paymentIntent } = await stripe.retrievePaymentIntent(clientSecret);
         if (paymentIntent?.status === 'succeeded') {
+          const total = cartItems.reduce((sum, item) => sum + parseInt(item.price || 0), 0);
           await api.post('/payment-info', {
             userEmail: user.email,
             userName: user.name,
-            classesId: cartItems.map((c) => c._id),
+            classesId: cartItems.map((c) => String(c._id)),
             transactionId: paymentIntent.id,
+            amount: total,
+            date: new Date().toISOString(),
           });
           toast.success('Payment successful!');
           onSuccess();
@@ -62,7 +65,7 @@ function CheckoutForm({ cartItems, user, clientSecret, onSuccess }) {
       <button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full py-3 bg-secondary text-white rounded-lg font-medium hover:opacity-90 disabled:opacity-50"
+        className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 disabled:opacity-50"
       >
         {loading ? 'Processing...' : `Pay $${total}`}
       </button>
@@ -73,9 +76,12 @@ function CheckoutForm({ cartItems, user, clientSecret, onSuccess }) {
 export default function Checkout() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [clientSecret, setClientSecret] = useState('');
+  const [paymentError, setPaymentError] = useState(null);
+  const [intentLoading, setIntentLoading] = useState(true);
 
-  const { data: cartItems = [], refetch } = useQuery({
+  const { data: cartItems = [] } = useQuery({
     queryKey: ['cart', user?.email],
     queryFn: () => api.get(`/cart/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
@@ -89,9 +95,21 @@ export default function Checkout() {
 
   useEffect(() => {
     if (user && cartItems.length > 0 && total > 0) {
-      api.post('/create-payment-intent', { price: total }).then(({ data }) => {
-        setClientSecret(data.clientSecret);
-      }).catch(() => setClientSecret(null));
+      setPaymentError(null);
+      setIntentLoading(true);
+      api
+        .post('/create-payment-intent', { price: total })
+        .then(({ data }) => {
+          setClientSecret(data.clientSecret);
+          setPaymentError(null);
+        })
+        .catch((err) => {
+          setClientSecret(null);
+          setPaymentError(err.response?.data?.message || 'Payment setup failed. Check server and Stripe config.');
+        })
+        .finally(() => setIntentLoading(false));
+    } else {
+      setIntentLoading(false);
     }
   }, [user, cartItems.length, total]);
 
@@ -114,7 +132,7 @@ export default function Checkout() {
   const options = { clientSecret, appearance: { theme: 'stripe' } };
 
   return (
-    <div className="py-16 max-w-md mx-auto px-4">
+    <div className="py-16 max-w-md mx-auto px-4 pt-24">
       <h1 className="text-2xl font-bold mb-8">Checkout</h1>
       <div className="bg-white p-6 rounded-xl shadow-lg">
         {clientSecret ? (
@@ -124,14 +142,25 @@ export default function Checkout() {
               user={user}
               clientSecret={clientSecret}
               onSuccess={() => {
-                refetch();
+                queryClient.invalidateQueries(['cart', user?.email]);
+                queryClient.invalidateQueries(['enrolled', user?.email]);
                 navigate('/dashboard');
               }}
             />
           </Elements>
+        ) : !intentLoading && paymentError ? (
+          <div className="text-center py-8">
+            <p className="text-red-600 mb-4">{paymentError}</p>
+            <button
+              onClick={() => navigate('/cart')}
+              className="text-blue-500 font-medium"
+            >
+              Back to Cart
+            </button>
+          </div>
         ) : (
           <div className="text-center py-8">
-            <div className="animate-spin w-10 h-10 border-2 border-secondary border-t-transparent rounded-full mx-auto" />
+            <div className="animate-spin w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full mx-auto" />
             <p className="mt-4 text-gray-600">Loading checkout...</p>
           </div>
         )}
