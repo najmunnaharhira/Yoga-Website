@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../api/axios';
+import { getFallbackClassById } from '../api/fallback';
 import { toast } from 'react-toastify';
 
 export default function ClassDetails() {
@@ -11,9 +12,13 @@ export default function ClassDetails() {
   const { user } = useAuth();
   const [adding, setAdding] = useState(false);
 
-  const { data: cls, isLoading } = useQuery({
+  const { data: cls, isLoading, isError } = useQuery({
     queryKey: ['class', id],
-    queryFn: () => api.get(`/class/${id}`).then((r) => r.data),
+    queryFn: () =>
+      api
+        .get(`/class/${id}`)
+        .then((r) => r.data)
+        .catch(() => getFallbackClassById(id)),
     enabled: !!id,
     retry: false,
   });
@@ -53,10 +58,23 @@ export default function ClassDetails() {
     setAdding(false);
   };
 
-  if (isLoading || !cls) {
+  if (isLoading) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center pt-24">
         <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full" />
+      </div>
+    );
+  }
+
+  if (!cls) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center pt-24 px-4">
+        <p className="text-gray-500 mb-4">
+          {isError ? 'Class not found. Start the server for live data.' : 'Class not found.'}
+        </p>
+        <Link to="/classes" className="text-blue-500 font-medium hover:underline">
+          ← Back to Classes
+        </Link>
       </div>
     );
   }

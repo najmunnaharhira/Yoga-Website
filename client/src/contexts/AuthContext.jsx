@@ -1,13 +1,4 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  signOut,
-  updateProfile,
-} from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
 import api from '../api/axios';
 
 const AuthContext = createContext(null);
@@ -16,84 +7,53 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const createUser = async (email, password, name, photoUrl) => {
-    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
-    const res = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(res.user, { displayName: name, photoURL: photoUrl });
-    return res;
+  const signup = async (name, email, phone, password) => {
+    const { data } = await api.post('/api/signup', { name, email, phone, password });
+    localStorage.setItem('yoga-token', data.token);
+    localStorage.setItem('yoga-user', JSON.stringify(data.user));
+    setUser(data.user);
   };
 
-  const login = (email, password) => {
-    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const loginWithGoogle = () => {
-    if (!auth) throw new Error('Firebase auth is not configured. Add VITE_FIREBASE_* env vars.');
-    return signInWithPopup(auth, googleProvider);
+  const login = async (emailOrPhone, password) => {
+    const { data } = await api.post('/api/login', {
+      email: emailOrPhone.includes('@') ? emailOrPhone : undefined,
+      phone: !emailOrPhone.includes('@') ? emailOrPhone : undefined,
+      password,
+    });
+    localStorage.setItem('yoga-token', data.token);
+    localStorage.setItem('yoga-user', JSON.stringify(data.user));
+    setUser(data.user);
   };
 
   const logout = () => {
     localStorage.removeItem('yoga-token');
-    if (auth) return signOut(auth);
-    return Promise.resolve();
-  };
-
-  const setToken = async (userData) => {
-    const { data } = await api.post('/api/set-token', userData);
-    localStorage.setItem('yoga-token', data.token);
+    localStorage.removeItem('yoga-user');
+    localStorage.removeItem('yoga-demo-user');
+    setUser(null);
   };
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userData = {
-          name: firebaseUser.displayName,
-          email: firebaseUser.email,
-          photoUrl: firebaseUser.photoURL,
-        };
-        try {
-          await setToken(userData);
-          const { data } = await api.get(`/user/${firebaseUser.email}`);
-          setUser(data || { ...userData, role: 'student' });
-        } catch (err) {
-          if (err.response?.status === 401) {
-            try {
-              await api.post('/new-user', {
-                ...userData,
-                role: 'student',
-                gender: 'Not specified',
-                address: 'Not provided',
-                phone: 'Not provided',
-              });
-              await setToken(userData);
-              setUser({ ...userData, role: 'student' });
-            } catch (e) {
-              setUser({ ...userData, role: 'student' });
-            }
-          }
-        }
-      } else {
-        setUser(null);
+    const token = localStorage.getItem('yoga-token');
+    const storedUser = localStorage.getItem('yoga-user') || localStorage.getItem('yoga-demo-user');
+    if (token && storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('yoga-token');
+        localStorage.removeItem('yoga-user');
+        localStorage.removeItem('yoga-demo-user');
       }
-      setLoading(false);
-    });
-    return () => unsub();
+    }
+    setLoading(false);
   }, []);
 
   const value = {
     user,
     loading,
-    createUser,
+    signup,
     login,
-    loginWithGoogle,
     logout,
-    setToken,
-    isAuthConfigured: !!auth,
+    isAuthConfigured: true,
   };
 
   return (

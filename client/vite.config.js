@@ -44,6 +44,7 @@ export default defineConfig({
       '/update-user': { target: 'http://localhost:5000', changeOrigin: true },
       '/as-instructor': { target: 'http://localhost:5000', changeOrigin: true },
       '/applied-instructors': { target: 'http://localhost:5000', changeOrigin: true },
+      '/instructor-class-students': { target: 'http://localhost:5000', changeOrigin: true },
     },
   },
 })

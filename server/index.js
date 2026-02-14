@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const stripe = require('stripe')(process.env.PAYMENT_SECRET);
 const cors = require('cors');
@@ -78,9 +79,68 @@ async function run() {
         }
 
 
+        // Simple auth: signup (phone, email, password)
+        app.post('/api/signup', async (req, res) => {
+            try {
+                const { name, email, phone, password } = req.body;
+                if (!email || !password || password.length < 6) {
+                    return res.status(400).json({ message: 'Email and password (min 6 chars) required.' });
+                }
+                const orConditions = [{ email: (email || '').trim().toLowerCase() }];
+                if (phone?.trim()) orConditions.push({ phone: phone.trim() });
+                const existing = await userCollection.findOne({ $or: orConditions });
+                if (existing) {
+                    return res.status(409).json({ message: 'Email or phone already registered.' });
+                }
+                const hashedPassword = await bcrypt.hash(password, 10);
+                const newUser = {
+                    name: name || 'User',
+                    email: email.trim().toLowerCase(),
+                    phone: phone?.trim() || 'Not provided',
+                    password: hashedPassword,
+                    role: 'student',
+                    gender: 'Not specified',
+                    address: 'Not provided',
+                    photoUrl: '/logo.png',
+                };
+                await userCollection.insertOne(newUser);
+                const { password: _, ...userWithoutPassword } = newUser;
+                const token = jwt.sign({ email: newUser.email }, process.env.ACCESS_SECRET, { expiresIn: '7d' });
+                res.json({ token, user: { ...userWithoutPassword, _id: newUser._id } });
+            } catch (err) {
+                res.status(500).json({ message: err.message || 'Signup failed.' });
+            }
+        });
+
+        // Simple auth: login (email or phone, password)
+        app.post('/api/login', async (req, res) => {
+            try {
+                const { email, phone, password } = req.body;
+                const identifier = (email || phone || '').toString().trim();
+                if (!identifier || !password) {
+                    return res.status(400).json({ message: 'Email/phone and password required.' });
+                }
+                const query = identifier.includes('@')
+                    ? { email: identifier.toLowerCase() }
+                    : { $or: [{ email: identifier }, { phone: identifier }] };
+                const user = await userCollection.findOne(query);
+                if (!user || !user.password) {
+                    return res.status(401).json({ message: 'Invalid email/phone or password.' });
+                }
+                const match = await bcrypt.compare(password, user.password);
+                if (!match) {
+                    return res.status(401).json({ message: 'Invalid email/phone or password.' });
+                }
+                const { password: _, ...userWithoutPassword } = user;
+                const token = jwt.sign({ email: user.email }, process.env.ACCESS_SECRET, { expiresIn: '7d' });
+                res.json({ token, user: userWithoutPassword });
+            } catch (err) {
+                res.status(500).json({ message: err.message || 'Login failed.' });
+            }
+        });
+
         app.post('/new-user', async (req, res) => {
             const newUser = req.body;
-
             const result = await userCollection.insertOne(newUser);
             res.send(result);
         })
@@ -157,6 +217,20 @@ async function run() {
             const query = { instructorEmail: email };
             const result = await classesCollection.find(query).toArray();
             res.send(result);
+        })
+
+        // GET ENROLLED STUDENTS FOR INSTRUCTOR'S CLASS
+        app.get('/instructor-class-students/:classId', verifyJWT, verifyInstructor, async (req, res) => {
+            const classId = req.params.classId;
+            const instructorEmail = req.decoded.email;
+            const cls = await classesCollection.findOne({ _id: new ObjectId(classId), instructorEmail });
+            if (!cls) return res.status(404).json({ message: 'Class not found' });
+            const enrolled = await enrolledCollection.find({
+                classesId: new ObjectId(classId)
+            }).toArray();
+            const uniqueEmails = [...new Set(enrolled.map(e => e.userEmail))];
+            const students = await userCollection.find({ email: { $in: uniqueEmails } }).project({ password: 0 }).toArray();
+            res.json(students);
         })
 
         // GET ALL CLASSES

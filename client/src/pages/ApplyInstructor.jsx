@@ -11,6 +11,7 @@ export default function ApplyInstructor() {
   const [form, setForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
+    phone: user?.phone || '',
     experience: '',
     skills: '',
     message: '',
@@ -37,6 +38,7 @@ export default function ApplyInstructor() {
     applyMutation.mutate({
       name: form.name,
       email: form.email,
+      phone: form.phone,
       experience: form.experience,
       skills: form.skills,
       message: form.message,
@@ -89,6 +91,16 @@ export default function ApplyInstructor() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
+            className="w-full px-4 py-2 border rounded-lg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            placeholder="+1234567890"
             className="w-full px-4 py-2 border rounded-lg"
           />
         </div>

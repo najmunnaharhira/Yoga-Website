@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
+import { getFallbackClasses, getFallbackInstructors } from '../api/fallback';
 import ClassCard from '../components/ClassCard';
 import InstructorCard from '../components/InstructorCard';
 
@@ -10,13 +11,21 @@ const HERO_IMAGE = 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=
 export default function Home() {
   const { data: classes = [], isError: classesError } = useQuery({
     queryKey: ['popular-classes'],
-    queryFn: () => api.get('/popular_classes').then((r) => r.data),
+    queryFn: () =>
+      api
+        .get('/popular_classes')
+        .then((r) => r.data)
+        .catch(() => getFallbackClasses()),
     retry: false,
   });
 
   const { data: instructors = [], isError: instructorsError } = useQuery({
     queryKey: ['popular-instructors'],
-    queryFn: () => api.get('/popular-instructors').then((r) => r.data),
+    queryFn: () =>
+      api
+        .get('/popular-instructors')
+        .then((r) => r.data)
+        .catch(() => getFallbackInstructors()),
     retry: false,
   });
 
@@ -73,7 +82,7 @@ export default function Home() {
           <p className="text-gray-600 mt-2">Most enrolled yoga classes</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classesError ? (
+          {classesError && classes.length === 0 ? (
             <p className="col-span-full text-center text-gray-500 py-8">Unable to load classes. Make sure the server is running.</p>
           ) : (
             classes.slice(0, 6).map((cls) => (
@@ -99,8 +108,8 @@ export default function Home() {
             <p className="text-gray-600 mt-2">Learn from the best</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {instructorsError ? (
-              <p className="col-span-full text-center text-gray-500 py-8">Unable to load instructors.</p>
+            {instructorsError && instructors.length === 0 ? (
+              <p className="col-span-full text-center text-gray-500 py-8">Unable to load instructors. Start the server to load live data.</p>
             ) : (
               instructors.slice(0, 6).map((inst, i) => (
                 <InstructorCard key={i} instructor={inst} />

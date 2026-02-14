@@ -18,8 +18,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    const url = error.config?.url || '';
+    const isAuthRequest = url.includes('/api/login') || url.includes('/api/signup');
+    if (!isAuthRequest && (error.response?.status === 401 || error.response?.status === 403)) {
       localStorage.removeItem('yoga-token');
+      localStorage.removeItem('yoga-user');
       window.location.href = '/login';
     }
     return Promise.reject(error);

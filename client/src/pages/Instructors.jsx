@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
+import { getFallbackInstructors } from '../api/fallback';
 import InstructorCard from '../components/InstructorCard';
 
 export default function Instructors() {
   const { data: instructors = [], isLoading, isError } = useQuery({
     queryKey: ['instructors'],
-    queryFn: () => api.get('/instructors').then((r) => r.data),
+    queryFn: () =>
+      api
+        .get('/instructors')
+        .then((r) => r.data)
+        .catch(() => getFallbackInstructors()),
     retry: false,
   });
 
@@ -34,8 +39,10 @@ export default function Instructors() {
           />
         ))}
       </div>
-      {(instructors.length === 0 || isError) && (
-        <p className="text-center text-gray-500 py-12">No instructors yet.</p>
+      {instructors.length === 0 && (
+        <p className="text-center text-gray-500 py-12">
+          {isError ? 'Unable to load instructors. Start the server for live data.' : 'No instructors yet.'}
+        </p>
       )}
     </div>
   );

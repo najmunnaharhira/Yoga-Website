@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '../api/axios';
+import { getFallbackClasses } from '../api/fallback';
 import ClassCard from '../components/ClassCard';
 
 export default function Classes() {
   const { data: classes = [], isLoading, isError } = useQuery({
     queryKey: ['classes'],
-    queryFn: () => api.get('/classes').then((r) => r.data),
+    queryFn: () =>
+      api
+        .get('/classes')
+        .then((r) => r.data)
+        .catch(() => getFallbackClasses()),
     retry: false,
   });
 
@@ -28,9 +33,9 @@ export default function Classes() {
           <ClassCard key={cls._id} cls={cls} />
         ))}
       </div>
-      {(classes.length === 0 || isError) && (
+      {classes.length === 0 && (
         <p className="text-center text-gray-500 py-12 col-span-full">
-          {isError ? 'Unable to load classes. Make sure the server is running.' : 'No classes available yet.'}
+          {isError ? 'Unable to load classes. Start the server or check the API URL.' : 'No classes available yet.'}
         </p>
       )}
     </div>
