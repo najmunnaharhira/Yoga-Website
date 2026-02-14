@@ -4,15 +4,16 @@ import { getFallbackClasses } from '../api/fallback';
 import ClassCard from '../components/ClassCard';
 
 export default function Classes() {
-  const { data: classes = [], isLoading, isError } = useQuery({
+  const { data: classesRaw, isLoading, isError } = useQuery({
     queryKey: ['classes'],
     queryFn: () =>
       api
         .get('/classes')
-        .then((r) => r.data)
+        .then((r) => (Array.isArray(r.data) ? r.data : getFallbackClasses()))
         .catch(() => getFallbackClasses()),
     retry: false,
   });
+  const classes = Array.isArray(classesRaw) ? classesRaw : [];
 
   if (isLoading) {
     return (

@@ -9,25 +9,27 @@ import InstructorCard from '../components/InstructorCard';
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920';
 
 export default function Home() {
-  const { data: classes = [], isError: classesError } = useQuery({
+  const { data: classesRaw, isError: classesError } = useQuery({
     queryKey: ['popular-classes'],
     queryFn: () =>
       api
         .get('/popular_classes')
-        .then((r) => r.data)
+        .then((r) => (Array.isArray(r.data) ? r.data : getFallbackClasses()))
         .catch(() => getFallbackClasses()),
     retry: false,
   });
+  const classes = Array.isArray(classesRaw) ? classesRaw : [];
 
-  const { data: instructors = [], isError: instructorsError } = useQuery({
+  const { data: instructorsRaw, isError: instructorsError } = useQuery({
     queryKey: ['popular-instructors'],
     queryFn: () =>
       api
         .get('/popular-instructors')
-        .then((r) => r.data)
+        .then((r) => (Array.isArray(r.data) ? r.data : getFallbackInstructors()))
         .catch(() => getFallbackInstructors()),
     retry: false,
   });
+  const instructors = Array.isArray(instructorsRaw) ? instructorsRaw : [];
 
   return (
     <div>

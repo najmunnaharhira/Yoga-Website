@@ -81,11 +81,12 @@ export default function Checkout() {
   const [paymentError, setPaymentError] = useState(null);
   const [intentLoading, setIntentLoading] = useState(true);
 
-  const { data: cartItems = [] } = useQuery({
+  const { data: cartItemsRaw } = useQuery({
     queryKey: ['cart', user?.email],
     queryFn: () => api.get(`/cart/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
   });
+  const cartItems = Array.isArray(cartItemsRaw) ? cartItemsRaw : [];
 
   const total = cartItems.reduce((sum, item) => sum + parseInt(item.price || 0), 0);
 

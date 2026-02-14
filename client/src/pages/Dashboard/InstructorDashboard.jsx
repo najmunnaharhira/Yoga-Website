@@ -18,17 +18,19 @@ export default function InstructorDashboard() {
     videoLink: '',
   });
 
-  const { data: myClasses = [], isLoading } = useQuery({
+  const { data: myClassesRaw, isLoading } = useQuery({
     queryKey: ['instructor-classes', user?.email],
     queryFn: () => api.get(`/classes/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
   });
+  const myClasses = Array.isArray(myClassesRaw) ? myClassesRaw : [];
 
-  const { data: enrolledStudents = [], isLoading: loadingStudents } = useQuery({
+  const { data: enrolledStudentsRaw, isLoading: loadingStudents } = useQuery({
     queryKey: ['instructor-class-students', expandedClass],
     queryFn: () => api.get(`/instructor-class-students/${expandedClass}`).then((r) => r.data),
     enabled: !!expandedClass,
   });
+  const enrolledStudents = Array.isArray(enrolledStudentsRaw) ? enrolledStudentsRaw : [];
 
   const addClass = useMutation({
     mutationFn: (data) => api.post('/new-class', {

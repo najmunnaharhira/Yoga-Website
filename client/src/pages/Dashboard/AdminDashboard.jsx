@@ -15,17 +15,19 @@ export default function AdminDashboard() {
     enabled: user?.role === 'admin',
   });
 
-  const { data: classes = [] } = useQuery({
+  const { data: classesRaw } = useQuery({
     queryKey: ['classes-manage'],
     queryFn: () => api.get('/classes-manage').then((r) => r.data),
     enabled: user?.role === 'admin',
   });
+  const classes = Array.isArray(classesRaw) ? classesRaw : [];
 
-  const { data: users = [] } = useQuery({
+  const { data: usersRaw } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.get('/users').then((r) => r.data),
     enabled: user?.role === 'admin',
   });
+  const users = Array.isArray(usersRaw) ? usersRaw : [];
 
   const updateStatus = useMutation({
     mutationFn: ({ id, status, reason }) =>

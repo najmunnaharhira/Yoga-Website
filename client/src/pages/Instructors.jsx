@@ -4,15 +4,16 @@ import { getFallbackInstructors } from '../api/fallback';
 import InstructorCard from '../components/InstructorCard';
 
 export default function Instructors() {
-  const { data: instructors = [], isLoading, isError } = useQuery({
+  const { data: instructorsRaw, isLoading, isError } = useQuery({
     queryKey: ['instructors'],
     queryFn: () =>
       api
         .get('/instructors')
-        .then((r) => r.data)
+        .then((r) => (Array.isArray(r.data) ? r.data : getFallbackInstructors()))
         .catch(() => getFallbackInstructors()),
     retry: false,
   });
+  const instructors = Array.isArray(instructorsRaw) ? instructorsRaw : [];
 
   if (isLoading) {
     return (

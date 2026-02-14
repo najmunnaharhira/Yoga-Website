@@ -21,8 +21,9 @@ async function loadFallbackData() {
 /** Transform data.json classes (note: "couses" typo in source) to app format */
 export async function getFallbackClasses() {
   const data = await loadFallbackData();
-  const couses = data.couses || data.classes || [];
-  return couses.map((c, i) => ({
+  const couses = data?.couses ?? data?.classes ?? [];
+  const arr = Array.isArray(couses) ? couses : [];
+  return arr.map((c, i) => ({
     ...c,
     _id: c._id || `fallback-${i}`,
     totalEnrolled: c.totalEnrolled ?? 0,

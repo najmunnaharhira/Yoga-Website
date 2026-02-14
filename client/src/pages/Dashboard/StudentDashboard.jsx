@@ -6,17 +6,19 @@ import api from '../../api/axios';
 export default function StudentDashboard() {
   const { user } = useAuth();
 
-  const { data: enrolled = [], isLoading } = useQuery({
+  const { data: enrolledRaw, isLoading } = useQuery({
     queryKey: ['enrolled', user?.email],
     queryFn: () => api.get(`/enrolled-classes/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
   });
+  const enrolled = Array.isArray(enrolledRaw) ? enrolledRaw : [];
 
-  const { data: paymentHistory = [] } = useQuery({
+  const { data: paymentHistoryRaw } = useQuery({
     queryKey: ['payment-history', user?.email],
     queryFn: () => api.get(`/payment-history/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
   });
+  const paymentHistory = Array.isArray(paymentHistoryRaw) ? paymentHistoryRaw : [];
 
   if (isLoading) {
     return (

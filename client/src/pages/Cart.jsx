@@ -9,12 +9,13 @@ export default function Cart() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: cartItems = [], isLoading } = useQuery({
+  const { data: cartItemsRaw, isLoading } = useQuery({
     queryKey: ['cart', user?.email],
     queryFn: () => api.get(`/cart/${user?.email}`).then((r) => r.data),
     enabled: !!user?.email,
     retry: false,
   });
+  const cartItems = Array.isArray(cartItemsRaw) ? cartItemsRaw : [];
 
   const removeMutation = useMutation({
     mutationFn: (classId) => api.delete(`/delete-cart-item/${classId}`),
